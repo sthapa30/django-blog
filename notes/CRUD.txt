@@ -1,0 +1,317 @@
+#############################################################################################
+
+In this tutorial we will learn how to create, update, and delet post. Also we will learn to 
+work with class based views for post model. We will be working with our blogs app.
+
+There are different types of class based views:
+1. CreateView
+2. UpdateView
+3. ListView
+4. DeleteView
+5. DetailView
+and couple more
+
+We need to import these views to use them
+
+from django.views.generic import ListView
+
+class PostListView(ListView):
+    model = Post # model variable will have access to Post model objects i.e all posts
+
+Now, we can use this view instead of our home view function
+
+In urls.py we can update the urlPatterns
+
+from .views import PostListView
+
+path('',PostListView,name="blog-home")
+
+To use class based views, we need to convert class to view with .as_view() method.
+
+path('',PostListView.as_view(),name="blog-home")
+
+*************************************************************************************************
+Now if we load our browser, we get an error: blog/post_list.html template does not exist.
+
+Class based view expects to have template with following naming conventions:
+<app>/<model>_<viewtype>.html
+
+We could create a template with this naming convention and use it. But since, we already have a template
+so, we also change which template this view can use. We can do this by following way:
+
+class PostListView(ListView):
+    model = Post 
+    template_name = 'blog/home.html' #<app>/<model>_<viewtype>.html
+
+We still need to do one more change. That is name of context variable that our template is using.
+By default, class based view expect context variable to be named as object. Since we already used
+'posts' as a variable name in our templates, we can add few changes here in class view to make it all 
+work.
+
+
+class PostListView(ListView):
+    model = Post 
+    template_name = 'blog/home.html' #<app>/<model>_<viewtype>.html
+    context_object_name = 'posts'
+    ordering = ['-date_posted'] # display the latest post first.
+
+Now, if we stick to the naming convention of the class based view, line of code will be little. So. on next 
+template, we will use this convention.
+
+*************************************************************************************************
+ 
+Now let's work on individual post. So, view for individual post should be DetailView since we will looking
+at the details of the post.
+
+from django.views.generic import ListView, DetailView
+
+class PostDetailView(DetailView):
+    model = Post 
+
+Now set up the urlPatterns
+
+from .views import PostListView, PostDetailView
+
+path('post/<int:pk>',PostDetailView.as_view(),name="post-detail") #This url take post id as an argument.
+
+
+Now since we are using class based view, we need to create a template following the naming convention.
+So lets create a template with name as:
+
+	post_detail.html #<app>/<model>_<viewtype>.html
+
+This template will have the content similar to home.html exept it will display only one post. So, we can remove
+the loop.
+
+Also, another important thing to notice is that, context variable should be name as object. So, we can replace 
+post with object.
+
+Now, we since we have post-detail route, we can display each of the posts in home page to its detail.
+
+<h2><a class="article-title" href="{% url "post-detail" post.id%}">{{ post.title }}</a></h2>
+
+*************************************************************************************************
+
+Now lets work on CREATE post
+
+from django.views.generic import ListView, DetailView, CreateView
+
+class PostCreateView(CreateView):
+    model = Post 
+    feilds = ['title','content']
+
+Set up urlPatterns
+
+from .views import PostListView, PostDetailView, PostCreateView
+
+path('post/new/',PostCreateView.as_view(),name="post-create")
+
+
+Now unlike ListView, CreateView exptects template as <model>_form.html
+
+This template will have similar form features like other forms such as register.html
+
+Edit some of those code
+
+Now if create a new post right now, its not going to work. Because the post is not linked to the author.
+The author of the post should be current logged in user. We need to tell this to djano. We can do this by following
+
+We can override the form_valid() method of CreateView. This will allow to add the author before the form is submitted.
+ 
+class PostCreateView(CreateView):
+    model = Post 
+    feilds = ['title','content']
+
+    def form_valid(self,form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
+
+Basically, what we are saying here is that, before submitting the form, take a form instance and set its user to current logged
+in user. Once we do that we call form_valid() again and pass the form with author.
+
+We will still get error. But the error will no longer be an Integrity Error. Its an absoute path error.
+This error means, new post has been created but we have not specified where to redirect to. So, lets redirect to some page
+
+CreateView will redirect it to sepecified route. To specifiy the route we use reverse function which will return the url string.
+
+from django.urls import reverse
+
+class Post(models.Model):
+    title = models.CharField(max_length=100)
+    content = models.TextField()
+    date_posted = models.DateTimeField(default=timezone.now)
+    author = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return self.title
+
+####################################
+    
+    def get_absolute_url(self):
+        return reverse('post-detail', kwargs={'pk':self.pk})
+
+*************************************************************************************************'
+There is one more thing left to do with create new post. One should not be able to post unless logged in
+We used decorators in function based view. But with class based view we need to use LoginMixin. It is a class
+which we will inherit in class view to implement the login feature.
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+
+class PostCreateView(LoginRequiredMixin, CreateView):
+
+
+*************************************************************************************************'
+
+Lets work on UPDATE view
+
+
+from django.views.generic import ListView, DetailView, CreateView, UpdateView
+
+class PostUpdateView(LoginReqiuredMixin,UpdateView):
+    model = Post 
+    feilds = ['title','content']
+
+    def form_valid(self,form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
+
+Set up urlPatterns
+
+from .views import PostListView, PostDetailView, PostCreateView, PostUpdateView
+
+path('post/<int:pk/update/>',PostUpdateView.as_view(),name="post-update")
+
+*************************************************************************************************'
+
+Now we are able to update the post. However, anyone can update anyone's post. This is not good. So we should
+put a check so that only the author of the post can update it. To do this we will use another mixin
+
+
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+
+class PostUpdateView(LoginReqiuredMixin, UserPassesTestMixin, UpdateView):
+    model = Post 
+    feilds = ['title','content']
+
+    def form_valid(self,form):
+        form.instance.author = self.request.user
+        return super().form_valid(form)
+
+We will write a function that UserPassesTestMixin can run to check the certain user pass check condition
+
+    def test_func(self):
+        post = self.get_object()
+        if post.author == self.request.user:
+            return True
+        return False
+
+This will displat 403 error page if unauthorized user tries to update the post.
+
+*************************************************************************************************'
+
+Lets work on DELETE view
+
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+
+class PostDeleteView(LoginReqiuredMixin, UserPassesTestMixin,DeleteView):
+    model = Post 
+    
+    success_url = '/' # This will redirect to home page when a post is deleted		
+    def test_func(self):
+        post = self.get_object()
+        if post.author == self.request.user:
+            return True
+        return False
+
+
+Set up urlPatterns
+
+from .views import PostListView, PostDetailView, PostCreateView, PostUpdateView, PostDeletView
+
+path('post/<int:pk/delet/>',PostDeleteView.as_view(),name="post-delete")
+
+Need to create a template for this. Template name will be post_confirm_delete.html
+
+See code
+
+*************************************************************************************************'
+ Alright we can work on navbar now to show create delete and update.
+
+make change in post_detail.html and base.html
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

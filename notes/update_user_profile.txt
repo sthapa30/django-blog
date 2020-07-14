@@ -1,0 +1,147 @@
+################################################################################################
+
+In this tutorial we will learn how to update user profile info. And also learn how to resize the
+image file.
+
+Lets create form to udpate user and thier profile
+
+In form.py we can add these new forms
+
+class UserUpdatdeForm(forms.ModelForm):
+    email = forms.EmailField()
+    class Meta:
+        model = User
+        fields = ['username','email']
+
+class ProfileUpdateForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = ['image']
+
+*******************************************************************************************************
+
+Now we can import these two classes in our view.py and create an instance of these forms
+
+from .form import UserUpdateForm, ProfileUpdateForm
+
+def profile(request):
+    u_form = UserUpdateForm()
+    p_form = ProfileUpdateForm()
+
+    context = {
+        'u_form': u_form,
+        'p_form': p_form
+
+    }
+
+    return render(request,'users/profile.html',context)
+
+*******************************************************************************************************
+
+Lets work on profile templates to serve these form on web page
+
+See profile.html
+
+NOTE: in the opening form tag, we should add following attribute:
+ <form method="POST" enctype="multipart/form-data">
+
+Without this, we cannot save images in filesystem.
+
+*******************************************************************************************************
+
+If we reload our browser and see changes, we can see that the fields are empty. If want to update the field
+data, those fields should be filled. So, lets work on that.
+
+
+Lets remember that UserUpdateForm and ProfileUpdateForm are forms inherited from Model form. So, these form works on 
+model objects. So, we can populate the fields by passing instance of an model object.
+Eg. to populate username field, we need to pass an instance of a User object and for profile, it will be an instance 
+of a Profile object.
+
+def profile(request):
+    u_form = UserUpdateForm(instance=request.user)
+    p_form = ProfileUpdateForm(instance=request.user.profile)
+
+
+
+*******************************************************************************************************
+Now, when we hit the Update button, we need to save the data from the form. Like before, we will check
+if the form method is POST.
+
+def profile(request):
+    if request.method == 'POST':
+        u_form = UserUpdateForm(request.POST,instance=request.user) # create a form instance with form data from POST.
+        p_form = ProfileUpdateForm(request.POST, request.FILES,instance=request.user.profile)
+        if u_from.is_valid() and p_from.is_valid():
+            u_from.save()
+            p_form.save()
+            messages.success(request, f'Your profile is updated')
+            return redirect('profile')
+    else:
+        u_form = UserUpdateForm(instance=request.user)
+        p_form = ProfileUpdateForm(instance=request.user.profile)
+
+    context = {
+        'u_form': u_form,
+        'p_form': p_form
+
+    }
+
+    return render(request,'users/profile.html',context)
+
+*******************************************************************************************************
+ Lets resize the uploaded images. To do this, we can override save() method of Profile model
+from PIL import Image
+
+#overriding the save() method 
+def save(self):
+    super().save() #calls the save() method of parents
+    
+    img = Image.open(self.image.path)
+    
+    if img.height > 300 or img.width > 300:
+        output_size = (300, 300)
+        img.thumbnail(output_size)
+        img.save(self.image.path) #overwrites the image with new image size
+
+
+*******************************************************************************************************
+
+Now, lets spice up the home page little bit. We can add the image of author
+
+In home.html
+
+<img class="rounded-circle article-img" src="{{ post.author.profile.image.url}}">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

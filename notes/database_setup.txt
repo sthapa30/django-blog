@@ -1,0 +1,229 @@
+
+
+############## Admin Page Notes ########################
+
+##########################
+localhost:8000/admin
+##########################
+
+
+Need to create login credentials
+**********************************
+-> python3 manage.py createsupersuer
+
+At first, this command throws an error. Why? -> Because, we need to create a database first. 
+Admin page in Django provides a GUI to operate database opertaion i.e CRUD
+Creating a database is easy. We just have to run few migration commands. What is migration??
+*** database migration: it allows to apply changes a database
+
+Now, we haven't created a database yet. So, this first migration will create a database for us. It will also
+add default tables in our database. It will also add auth_user table in our database which shall allow us to create
+a supreuser for admin page.
+
+Let's run this migration:
+
+1) python manage.py makemigrations
+
+When we run this command, it tells us that "No changes detected". If we had created some tables or models, it would have shown 
+some changes.
+
+Basically, makemigrations command detect the changes and prepares django to update the database. But it does not run those changes yet.
+In order to apply the migrations, we run following command:
+
+2) python manage.py migrate
+
+This will create a database and also add defult auth_user tabale which will allow us to create superuser
+
+Now we can re-run the command to create superuser
+
+3) python manage.py createsuperuser
+
+Now we can create login credentials for our admin page
+
+Lets run the server
+
+4) python manage.py runserver
+
+In the browser, go to this URL, localhost:8000/admin
+
+Now we should be able to sign in with the username and password we created in step 3
+
+###### See Documentation for further details ##########
+
+
+######################### Database Setup ########################
+
+By default Django uses SQLite database. We can view that in project_module/settings.py -> DATABASES
+
+If we wish to use some more scalable database like MySQL, MongoDB, PostgreSQL, we can change the values of the 'default' key 
+in DATABASES dict. 
+
+*************************************************************************************
+Eg. If we want to use MongoDB
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'djongo',
+        'NAME': 'name of our database',
+    }
+}
+
+Note: 
+
+'Djongo' connects djano to MongoDB. So, need to install Djongo.
+
+1) pip3 install djongo
+
+#### For futher detail read the content in following link #######
+
+https://medium.com/@9cv9official/django-to-mongodb-djongo-or-mongoengine-d9d56b836a3d
+
+*************************************************************************************
+
+Creating Models
+
+Models are tables in our database
+
+We can create models in app_module/models.py
+
+*************************************************************************************
+Eg. in app_module/models.py
+
+from django.db import models
+
+
+class Question(models.Model):
+    question_text = models.CharField(max_length=200)
+    pub_date = models.DateTimeField('date published')
+
+
+class Choice(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE)
+    choice_text = models.CharField(max_length=200)
+    votes = models.IntegerField(default=0)
+
+*************************************************************************************
+
+With this model code, django will create a database schema(CREATE TABLE statements) for our app
+Also creates a python database-access API for accessing Question and Choice objetcs.
+
+NOTE: We need to tell our projects that our app is installed. To do this we need to add
+
+add a reference to our app configuration in INSTALLED_APPS settings. We can see our app configuarion in
+app_module/apps.py 
+
+class BlogConfig(AppConfig):
+    name = 'blog'
+
+'BlogConfig' is reference name for our app configuaration
+
+So, we need to add this to INSTALLED_APPS in project_module/settings.py
+
+INSTALLED_APPS = [
+     **********************	
+    'blog.apps.BlogConfig',
+     **********************
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+]
+
+djano now knows to include our app.
+
+Now that we have made a changes in our models.py(in this case, we created a new model), we need to create a table in database
+corresponding to these models. Following commands does this for us
+1) python manage.py makemigrations app_name
+2) python manage.py migrate
+
+*************************************************************************************
+Once a model has been created and  is implemented with migrate command, we need to register it to see the model in admin pannel
+
+
+
+
+######################### python API for accessing database objects #######################
+
+We can use python shell to play around some of these API's
+
+1) python manage.py shell
+
+>>> from app_name.models import model_name
+
+>>> model_name.objects.all() # query set of given model_name objects
+
+# To create model objects
+
+>>> variable = model_name(model_attribute="value",model_attribute="value",......)
+
+# save the object in the database
+
+>>> variable.save()
+
+# Now each object has an ID
+
+>>> variable.id
+
+# access object's feild values
+
+>>> variable.attribute
+
+# make changes/updates to fields
+
+>>> variable.attribue = "new value"
+
+>>> variable.save()
+
+#### See documentation for further details #######
+
+https://docs.djangoproject.com/en/3.0/intro/tutorial02/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

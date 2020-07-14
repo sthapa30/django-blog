@@ -1,0 +1,156 @@
+#####################################################
+
+This tutorial is on creating a login, logout system. And also making user 
+logged in before they can access to certain pages. So, let's get started!!
+
+Django has built-in login/logout views. So, we can import that. Then we only have 
+to create some templates for views.
+
+In urls.py in project module, we can import these views
+
+from django.contrib.auth import views as auth_views
+
+Now we can add path in UrlPatterns:
+
+path('login/',auth_views.LoginView.as_view(), name="login")
+path('logout/',auth_views.LogoutView.as_view(), name="login")
+
+with auth_views.LoginView route handler, django will look for templates in register/login.html.
+So, we will change this template lookup path by passing arguments in as_view().
+
+path('login/',auth_views.LoginView.as_view(template_name='users/login.html'), name="login")
+path('login/',auth_views.LoginView.as_view(template_name='users/login.html'), name="login")
+
+*****************************************************************************************************************
+
+Now we should create login.html template in template/users/
+
+
+So, once we hit the login button, django redirects us to profile view. But we can change that by adding this line
+in settings.py
+
+LOGIN_REDIRECT_URL = 'blog-home' # This redirect user to home page after being logged in
+
+*****************************************************************************************************************
+Okay. Now we have created a login page, so, once a new user is registered, we can redirect them to this login page instead of home page
+In views.py in user app, inside register function:
+
+return redirect('login')
+
+*****************************************************************************************************************
+
+Let's work in logout too.
+
+We need to create a template for logout page.
+
+*****************************************************************************************************************
+
+Now that we have created registration, login, logout, let's change the nav bar so that it can change based on user being logged in or logged out.
+Eg, if user is logged in, the nav bar should display logout. And if user is not logged in, nav bar should display login and register.
+
+We can do this by adding conditional statements in nav bar in base.html
+
+<!- Navbar Right Side -->
+
+{% if user.is_authenticated %}
+	<a class="nav-item nav-link" href="{% url "logout" %}">Logout</a>
+	
+{% else %}
+	<a class="nav-item nav-link" href="{% url "register "%}">Register</a>
+	<a class="nav-item nav-link" href="{% url "login "%}">LogIn</a>
+
+{% endif %}
+
+*****************************************************************************************************************
+
+Last thing we will learn in this tutorial is how to restrict user from accessing some pages if user is not logged in.
+Eg, Profile page. We need be logged in to access profile page.
+
+
+Lets create a route and view for profile.
+
+The view for profile will be in users/view.py 
+
+def profile(request):
+	return render(request,'users/profile.html')
+
+Then lets creata a profile.html
+
+<h1>{{ user.username}} </h1> # we don't have to pass user. Because it is built-in to django that represents current loggedin user.
+
+lets add url routes
+
+path('profile/',user_views.profile,name="profile")
+
+Okay this will allow to access profile. Now lets add profile in navbar once the user is logged in. To do this we can 
+add following code in base.html like above.
+
+{% if user.is_authenticated %}
+	<a class="nav-item nav-link" href="{% url "logout" %}">Logout</a>
+	<a class="nav-item nav-link" href="{% url "profile" %}">Profile</a>
+	
+	
+{% else %}
+
+*****************************************************************************************************************
+Okay. So how to restict user from accessing profile if they are not logged in.
+
+To do this django provides login_required decorators. lets import it
+
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def profile(request):
+	return render(request,'users/profile.html')
+
+*****************************************************************************************************************
+
+Alright. So, when some user tries to access to localhost:8000/profile, they will have to login first.
+To make this fully work, we need to tell django to route to login url. For this we need to add this line of code in settings.py
+
+LOGIN_URL = "login"
+
+*****************************************************************************************************************
+
+Yayy! So we can access to profile directly once we are logged in. This is a nice feature that most website requires.	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+

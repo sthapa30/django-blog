@@ -1,0 +1,221 @@
+
+##################################################
+
+In our blog project, users should be able to sign up, login,logout, create post and so on.
+The views, templates, and logic is different from the blog app. So its better to create a separate users app.
+Let's get started
+
+1. Create a separate users app in our project.
+
+python3 manage.py startapp users
+
+2. Add this app to INSTALLED_APP in settings.py
+
+3. Let's create a view for our app
+
+For now, our users should be able to signup. So, let's create a signup form in the views
+
+Django provides a built-in forms to create a new users. Include following imports in views.py
+
+***********************************************************************************************
+from django.contrib.auth.forms import UserCreationForm
+
+create an instance of the form
+
+form = UserCreationForm()
+
+Need to render the user request with html templates. And the contents of the html is form
+
+return render(request,'users/register.html',{'forms': form})
+
+***********************************************************************************************
+
+NOTE: resgister.html does not exist yet. So need to create one. Django convention : templates/users/register.html
+
+templates: directory under our apphttps://overiq.com/django-1-10/django-creating-users-using-usercreationform/
+users: directory under templates. Name of this directory is same as our app name
+register.html: html file that we render to user
+
+
+Now let's see what we write inside register.html
+
+
+This page can also extend base.html
+{% extends "blog/base.html" %}
+
+Next it contains form. Let's create a form
+
+{% block content %}
+
+
+See code
+
+	
+
+
+{% endblock content %}
+
+4. Now that we have view and html created. Let's add urlPattern to access to this page.
+
+We can do this by applying similar process we did on creating url.py in our blog app.
+But we are doing it differently this time.
+
+We can add url directlty in urls.py in project module. We need to import the views
+
+from users import views as user_views
+
+Now we can add following path in urlPatterns list
+
+path('register/',user_views.register,name="register")
+
+5. Now we have created a form to register new users. However, when we hit the submit button, the input data 
+won't be saved anywhere. Let's work on that too!
+***********************************************************************************************
+Add the following codes
+
+import django.contrib import messages # this is for creating an alert messages
+import django.shortcuts import render, redirect
+
+def register(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            form.save()
+            username = form.cleaned_data.get('username')
+            messages.sucess(request, f'Account created for {username}') # This for rendering sucess message after creating a new user
+            return redirect('blog-home')
+    else:
+        form = UserCreationForm()
+    return render(request,'users/register.html',{'forms': form})
+
+Reference: 
+https://github.com/CoreyMSchafer/code_snippets/blob/master/Django_Blog/06-User-Registration-Form/django_project/users/views.py
+
+#https://overiq.com/django-1-10/django-creating-users-using-usercreationform/
+***********************************************************************************************
+
+Now this will save the new user to database. We can also add feilds to this form.
+Or we can build a new form from scratch. Follow the link to build a form from scratch
+
+https://overiq.com/django-1-10/django-creating-users-using-usercreationform/
+
+For now, let's add email field.
+
+To do this, let's create  a forms.py in our users app
+
+Then write these code
+
+***********************************************************************************************
+from django import forms
+from django.contrib.auth.models import User
+from django.contrib.auth.forms import UserCreationForm
+
+
+class UserRegisterForm(UserCreationForm): # creating a UserRegisterForm class that inherits UserCreationForm
+    email = forms.EmailField() # adding email fields
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password1', 'password2'] # password1: just some password # password2: password confirmation
+
+***********************************************************************************************
+
+Once we created UserRegisterForm, we can use this from instead of UserCreationForm
+So, we can update our view.py with these changes
+
+
+***********************************************************************************************
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .forms import UserRegisterForm #changes made
+
+
+def register(request):
+    if request.method == 'POST':
+        form = UserRegisterForm(request.POST) #changes made
+        if form.is_valid():
+            form.save()
+            username = form.cleaned_data.get('username')
+            messages.success(request, f'Account created for {username}!') # This messages should be rendered in html
+            return redirect('blog-home')
+    else:
+        form = UserRegisterForm() #changes made
+    return render(request, 'users/register.html', {'form': form})
+
+
+To view success message after user creation, add following code in base.html
+
+	  {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+
+***********************************************************************************************
+
+Alright! This should just work. But we can also add style to this form
+Djano provides crispy-form that makes from more better. Lets install it
+
+pip3 install django-crispy-forms
+
+We need to add crispy-forms in INSTALLED_APPS
+
+'crispy_forms'
+
+Now, crispy_fomrs uses bootstrap2 as defualt. bootsrap2 is outdated. So lets change it to bootstarp4.
+To do this, we need to add following line at the very bottom of the settings.py
+
+***********************************************************************************************
+CRISPY_TEMPLATE_PACK = 'bootstrap4' # This will tell crispy to use bootstrap4.
+***********************************************************************************************
+We can use any kind of style other than bootstrap4 too. We can look up at crispy-forms documentation.
+
+WE need to load the crispy_forms in register.html.
+
+{% load crispy_forms_tags %}
+
+And inside form tag, need to add crispy filter
+
+{{ form|crispy}}
+
+***********************************************************************************************
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+

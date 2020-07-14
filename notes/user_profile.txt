@@ -1,0 +1,113 @@
+##################################################################################################
+
+In this tutorial, we will learn how to create a user profile.
+User profile needs to be stored in database. So, we can create a 
+model for our user profile.
+
+***************************************************************************************************
+We will create this model in model.py in user app
+
+from django.db import models
+from django.contrib.auth.models import User
+
+class Profile(models.Model):
+	user = models.OneToOneFiled(User, on_delete=model.CASCADE) # This creates a profile for existing user
+	image = models.ImageFiled(default='default.jpg', upload_to='profile_pics')
+	
+	#This function will print 'username Profile' when profile object is printed	
+	def __str__(self):
+		return f'{self.user.username} Profile'
+
+***************************************************************************************************
+
+NOTE: Everytime we make a change in models.py, we need to run makemigrations command. Now this will 
+make changes to database.
+And also we need to register this model in admin.py to view this model in admin page.
+
+from django.contrib import admin
+from .models import Profile
+
+admin.site.register(Profile)
+
+***************************************************************************************************
+
+Now that we have created a model for user profile and have also registered it, we need to serve the user uploaded
+static files in our web page.
+
+Serving up the static files are little different than some other data. It is because, updloaded files are saved in filesystem
+instead of database because of performance reason.
+So, to save files in filesystem, we need to edit MEDIA_ROOT in settings.py
+
+Below STATIC_FILES:
+
+MEDIA_ROOT = os.path.join(BASE_DIR,'media') #creates a media directory to save updloaded files
+MEDIA_URL = '/media/' #provieds link to access uploaded files
+
+Now we can create a profile.html to serve a profile page
+
+***************************************************************************************************
+
+We still need to do few things to make this work. Django provides two options to serve static files.
+One during development phase, and other during the production stage. We are in development phase, so
+let's focus on this process.
+
+
+In urls.py, we should add this lines of code
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+***************************************************************************************************
+
+Now, last thing we need to do is, automatically create a user profile when a new user is created.
+To do this, we use django signals.
+Lets create a signals.py in users app
+
+from django.db.models.signals import post_save
+from django.contrib.auth.models import User
+from django.dispatch import receiver
+from .models import Profile
+
+@receiver(post_save, sender=User)
+def create_profile(sender,instance,created,**kwargs):
+    if created:
+        Profile.objects.create(user=instance)
+
+@receiver(post_save, sender=User)
+def save_profile(sender, instance, **kwargs):
+    instance.profile.save()
+
+After this, we need to import signals.py in app.py
+
+Just inside the UserConfig class, write a function
+    
+     name = 'users' #below this
+     def ready(self):
+        import users.signals
+
+***************************************************************************************************
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
